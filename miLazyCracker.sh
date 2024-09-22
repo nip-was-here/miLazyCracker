@@ -44,21 +44,22 @@ myUID=$(nfc-list -t 1|sed -n 's/ //g;/UID/s/.*://p')
 TMPFILE_MFD="mfc_${myUID}_dump.mfd"
 TMPFILE_UNK="mfc_${myUID}_unknownMfocSectorInfo.txt"
 TMPFILE_FND="mfc_${myUID}_foundKeys.txt"
+TMPFILE_MFOC_LOG="mfc_${myUID}_mfoc_log.txt"
 
-if [ -f "$TMPFILE_FND" ]; then
-    if [ -f "extended-std.keys" ]; then
-        mfoc -f "$TMPFILE_FND" -f "extended-std.keys" -O "$TMPFILE_MFD"  -D "$TMPFILE_UNK"
-    else
-        mfoc -f "$TMPFILE_FND" -O "$TMPFILE_MFD"  -D "$TMPFILE_UNK"
-    fi
-else
-    if [ -f "extended-std.keys" ]; then
-        mfoc -f "extended-std.keys" -O "$TMPFILE_MFD" -D "$TMPFILE_UNK"
-    else
-        mfoc -O "$TMPFILE_MFD" -D "$TMPFILE_UNK"
-    fi
+MFOC_ARGS=(-O "${TMPFILE_MFD}" -D "${TMPFILE_UNK}")
+if [ -f "extended-std.keys" ]; then
+    MFOC_ARGS=(-f "extended-std.keys" "${MFOC_ARGS[@]}")
 fi
-mfocResult=$?
+if [ -f "$TMPFILE_FND" ]; then
+    MFOC_ARGS=(-f "${TMPFILE_FND}" "${MFOC_ARGS[@]}")
+fi
+mfoc "${MFOC_ARGS[@]}" | tee "${TMPFILE_MFOC_LOG}"
+
+if [ ! -f "$TMPFILE_FND" ]; then
+    sed '/^Sector/!d;s/Sector\s[0-9][0-9]*\s-\s//g;s/\(Found\|Unknown\)\s\s*Key\s\(A\|B\):*\s*\(\S*\)/\3/g;s/\(\S\S*\)\s\s*\(\S\S*\)/\1\n\2/g' "${TMPFILE_MFOC_LOG}" | sort | uniq > "${TMPFILE_FND}"
+fi
+
+mfocResult=${PIPESTATUS[0]}
 prngNotVulnerable=9
 keepTrying=1
 foundKeysForMFOC=" "
