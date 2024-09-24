@@ -54,12 +54,12 @@ if [ -f "$TMPFILE_FND" ]; then
     MFOC_ARGS=(-f "${TMPFILE_FND}" "${MFOC_ARGS[@]}")
 fi
 mfoc "${MFOC_ARGS[@]}" | tee "${TMPFILE_MFOC_LOG}"
+mfocResult=${PIPESTATUS[0]}
 
 if [ ! -f "$TMPFILE_FND" ]; then
-    sed '/^Sector/!d;s/Sector\s[0-9][0-9]*\s-\s//g;s/\(Found\|Unknown\)\s\s*Key\s\(A\|B\):*\s*\(\S*\)/\3/g;s/\(\S\S*\)\s\s*\(\S\S*\)/\1\n\2/g' "${TMPFILE_MFOC_LOG}" | sort | uniq > "${TMPFILE_FND}"
+    sed '/^Sector /!d;s/Sector\s[0-9][0-9]*\s-\s//g;s/\(Found\|Unknown\)\s\s*Key\s\(A\|B\):*\s*\([0-9a-f]*\)/\3/g;s/\s*\(\S\S*\)\s*/\1\n/g' "${TMPFILE_MFOC_LOG}" | sort | uniq > "${TMPFILE_FND}"
 fi
 
-mfocResult=${PIPESTATUS[0]}
 prngNotVulnerable=9
 keepTrying=1
 foundKeysForMFOC=" "
